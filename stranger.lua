@@ -1,4 +1,4 @@
-local bot, extension = require("lua-bot-api").configure('166028125:AAGqd4rbmTJOjFTyi36UXodFSzcyVCGo1Q4')
+local bot, extension = require("lua-bot-api").configure('YOUR TOKEN HERE')
 
 local function table_contains(table, element, query)
   if not query then
