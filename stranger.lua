@@ -329,21 +329,25 @@ extension.onTextReceive = function(msg)
     if (matches[1]=='help') then
         local output = get_bot_help()
         bot.sendMessage(msg.chat.id,output,"Markdown")
+        return
     end
     
     if (matches[1]=='help@strangerGroupBot') then
         local output = get_bot_help()
         bot.sendMessage(msg.chat.id,output,"Markdown")
+        return
     end
     
     if (matches[1]=='about') then
         local output = get_bot_about()
         bot.sendMessage(msg.chat.id,output)
+        return
     end
     
     if (matches[1]=='about@strangerGroupBot') then
         local output = get_bot_about()
         bot.sendMessage(msg.chat.id,output)
+        return
     end
     
     if matches[1] then
