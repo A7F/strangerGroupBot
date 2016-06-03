@@ -233,7 +233,7 @@ end
 M.getMe = getMe
 
 
-local function sendMessage(chat_id, text, reply_markup, disable_web_page_preview, disable_notification, reply_to_message_id, parse_mode)
+local function sendMessage(chat_id, text, parse_mode, disable_web_page_preview, disable_notification, reply_to_message_id, reply_markup)
 
   if not chat_id then return nil, "chat_id not specified" end
   if not text then return nil, "text not specified" end

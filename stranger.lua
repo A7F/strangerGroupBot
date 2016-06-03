@@ -1,4 +1,4 @@
-local bot, extension = require("lua-bot-api").configure('166028125:AAGqd4rbmTJOjFTyi36UXodFSzcyVCGo1Q4')
+local bot, extension = require("lua-bot-api").configure('YOUR TOKEN HERE')
 
 local function table_contains(table, element, query)
   if not query then
@@ -55,7 +55,8 @@ local function init_group(groupid)
     if not configs[group_id] then
         configs[group_id] = {
             is_available = false,
-            com_to = 0
+            com_to = 0,
+            is_media_disabled = false
         }
         
         save_data("./data/strangergroup.json",configs)
@@ -183,7 +184,7 @@ end
 
 local function get_bot_about()
     local text = "This bot is developed by @Seg_fault from LM.\n"
-    .."Based on lua-api wrapper from @cosmonawt.\n"
+    .."Based on lua-api wrapper from @cosmonawt.\n\n"
     .."Please feel free to report any bug or suggesting new functions in our group [to be created soon]\n"
     .."This bot does not collect any personal data! it just stores your group ID to let the bot forward anonymously msgs and media files\n\n"
     .."Have fun!"
@@ -192,14 +193,69 @@ local function get_bot_about()
 end
 
 local function get_bot_help()
-    local text = "=== BOT GUIDE ===\n\n"
+    local text = "*BOT GUIDE*\n\n"
         .."/start: begin searching for a match\n"
         .."/end: close current chat\n"
-        .."/[your text]: sends the message (don't use square brackets).\nEx: /hello world! :)"
-        .."\n\nPlease notice that media (pics, stickers, videos and vocals) forwarding is ALWAYS ON, so if you are using this bot in a group and you started a chat, it will forward (anonymously, ofc) any media you send."
+        .."/nomedia: enable or disable media sending\n"
+        .."/`your text`: sends the message (don't use square brackets).\n_Ex:_  /hello world! :)"
+        .."\n\nPlease notice that _media (pics, videos and vocals) forwarding is_ *ENABLED* as default, so if you are using this bot"
+        .." in a group and you started a chat, it will forward (anonymously, ofc) any media you send unless you disable it using /nomedia ."
     return text
 end
-        
+
+--returns true if media are disabled
+local function is_disabled_media(groupid)
+    local configs= load_data("./data/strangergroup.json")
+    
+    if not configs[tostring(groupid)] then
+        return true
+    end
+    
+    if configs[tostring(groupid)].is_media_disabled then
+        return true
+    else
+        return false
+    end
+end
+
+--returns true if media are enabled
+local function is_enabled_media(groupid)
+    local configs= load_data("./data/strangergroup.json")
+    
+    if not configs[tostring(groupid)] then
+        return false
+    end
+    
+    if not configs[tostring(groupid)].is_media_disabled then
+        return true
+    else
+        return false
+    end
+end
+
+local function disable_media(groupid)
+    local configs= load_data("./data/strangergroup.json")
+    
+    if not configs[tostring(groupid)] then
+        return false
+    end
+    
+    configs[tostring(groupid)].is_media_disabled = true
+    save_data("./data/strangergroup.json",configs)
+    return true
+end
+
+local function enable_media(groupid)
+    local configs= load_data("./data/strangergroup.json")
+    
+    if not configs[tostring(groupid)] then
+        return false
+    end
+    
+    configs[tostring(groupid)].is_media_disabled = false
+    save_data("./data/strangergroup.json",configs)
+    return true
+end
 
 
 
@@ -208,8 +264,9 @@ extension.onTextReceive = function(msg)
     local matches = {msg.text:match('^/(.+)$')}
     
     if not checkSubscribers() then
-        local output = "Not enough groups!"
-        bot.sendMessage(msg.chat.id,output)
+        local temp = init_group(msg.chat.id)
+        local output = "*Not enough groups!*"
+        bot.sendMessage(msg.chat.id,output,"Markdown")
         return
     end
     
@@ -218,19 +275,19 @@ extension.onTextReceive = function(msg)
         
         if control_if_chatting(msg.chat.id) then
             local reply="Nope! First you must close your current chat."
-            bot.sendMessage(msg.chat.id,reply)
+            bot.sendMessage(msg.chat.id,reply,"Markdown")
             return
         end
         
         set_as_available(msg.chat.id)
-        local output = "Searching for a group..."
-        bot.sendMessage(msg.chat.id,output)
+        local output = "_Searching for a group..._"
+        bot.sendMessage(msg.chat.id,output,"Markdown")
         local val = search_for_groups(msg.chat.id)
         
         if open_bridge(msg.chat.id,val) then
-            output="Match found. Have fun! :)"
-            bot.sendMessage(msg.chat.id,output)
-            bot.sendMessage(val,output)
+            output="*Match found.* \n_Have fun! :)_"
+            bot.sendMessage(msg.chat.id,output,"Markdown")
+            bot.sendMessage(val,output,"Markdown")
             return
         end
         return
@@ -241,26 +298,42 @@ extension.onTextReceive = function(msg)
         local output = ""
         
         if dest2 == 0 then
-            output = "Ok, search stopped. \nUse /start to search again for a group!"
-            bot.sendMessage(msg.chat.id,output)
+            output = "_Ok,_ *search stopped.* \nUse /start to search again for a group!"
+            bot.sendMessage(msg.chat.id,output,"Markdown")
         else
-            output = "Your partner left the chat :( use /start to start a new conversation!"
-            bot.sendMessage(dest2,output)
-            local output2 = "Ok, chat closed :3"
-            bot.sendMessage(msg.chat.id,output2)
+            output = "_Your partner_ *left* _the chat :(_ \nuse /start to start a new conversation!"
+            bot.sendMessage(dest2,output,"Markdown")
+            local output2 = "_Ok,_ *chat closed* _:3_"
+            bot.sendMessage(msg.chat.id,output2,"Markdown")
         end
         
         return
     end
     
+    
+    if(matches[1]=='nomedia')then
+        local output = ""
+        local void=init_group(msg.chat.id)
+        
+        if is_disabled_media(msg.chat.id) then
+            local temp = enable_media(msg.chat.id)
+            output="Ok! media _enabled_.\nNow you can _send_ and _receive_ media files."
+        else
+            local temp = disable_media(msg.chat.id)
+            output="Ok! media _disabled_.\nNow you _can't send_ media files but you _can receive_ them, unless your match disabled his media sending like you."
+        end
+        bot.sendMessage(msg.chat.id,output,"Markdown")
+        return
+    end
+    
     if (matches[1]=='help') then
         local output = get_bot_help()
-        bot.sendMessage(msg.chat.id,output)
+        bot.sendMessage(msg.chat.id,output,"Markdown")
     end
     
     if (matches[1]=='help@strangerGroupBot') then
         local output = get_bot_help()
-        bot.sendMessage(msg.chat.id,output)
+        bot.sendMessage(msg.chat.id,output,"Markdown")
     end
     
     if (matches[1]=='about') then
@@ -283,7 +356,13 @@ end
 
 
 extension.onPhotoReceive = function(msg)
+    
+    if is_disabled_media(msg.chat.id) then
+        return
+    end
+    
 	print("Photo received!")
+	
 	if control_if_chatting(msg.chat.id) then
 	    local dest = get_com_id(msg.chat.id)
 	    bot.sendPhoto(dest,msg.photo[1].file_id)
@@ -293,7 +372,13 @@ end
 
 
 extension.onVideoReceive = function(msg)
+    
+    if is_disabled_media(msg.chat.id) then
+        return
+    end
+    
 	print("Video received!")
+	
 	if control_if_chatting(msg.chat.id) then
 	    local dest = get_com_id(msg.chat.id)
 	    bot.sendVideo(dest,msg.video.file_id)
@@ -313,7 +398,13 @@ end
 
 
 extension.onVoiceReceive = function(msg)
+    
+    if is_disabled_media(msg.chat.id) then
+        return
+    end
+    
 	print("Voice received!")
+	
 	if control_if_chatting(msg.chat.id) then
 	    local dest = get_com_id(msg.chat.id)
 	    bot.sendVoice(dest,msg.voice.file_id)
@@ -323,7 +414,13 @@ end
 
 
 extension.onAudioReceive = function(msg)
+    
+    if is_disabled_media(msg.chat.id) then
+        return
+    end
+    
 	print("Audio received!")
+	
 	if control_if_chatting(msg.chat.id) then
 	    local dest = get_com_id(msg.chat.id)
 	    bot.sendAudio(dest,msg.audio.file_id)
