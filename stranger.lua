@@ -48,15 +48,25 @@ local function checkSubscribers()
     end
 end
 
-local function init_group(groupid)
-    local configs= load_data("./data/strangergroup.json")
+local function init_group(groupid,typechat)
+    local configs = load_data("./data/strangergroup.json")
     group_id = tostring(groupid)
+    local groupchat = false
+    print(typechat)
+    if (typechat=="group") then
+        groupchat = true
+    elseif (typechat=="supergroup") then
+        groupchat = true
+    else
+        groupchat = false
+    end
     
     if not configs[group_id] then
         configs[group_id] = {
             is_available = false,
             com_to = 0,
-            is_media_disabled = false
+            is_media_disabled = false,
+            is_groupchat = groupchat
         }
         
         save_data("./data/strangergroup.json",configs)
@@ -168,6 +178,9 @@ end
 
 local function control_if_chatting(groupid)
     local configs= load_data("./data/strangergroup.json")
+    
+    if not configs[tostring(groupid)] then return false end
+    
     local is_av = configs[tostring(groupid)].is_available
     local cto = configs[tostring(groupid)].com_to
     
@@ -263,15 +276,20 @@ extension.onTextReceive = function(msg)
     
     local matches = {msg.text:match('^/(.+)$')}
     
+    if is_old_msg(msg.date) then
+        return
+    end
+    
     if not checkSubscribers() then
-        local temp = init_group(msg.chat.id)
+        local temp = init_group(msg.chat.id,msg.chat.type)
         local output = "*Not enough groups!*"
         bot.sendMessage(msg.chat.id,output,"Markdown")
         return
     end
     
     if(matches[1]=='start')then
-        local void = init_group(msg.chat.id)
+        
+        local void = init_group(msg.chat.id,msg.chat.type)
         
         if control_if_chatting(msg.chat.id) then
             local reply="Nope! First you must close your current chat."
@@ -329,21 +347,25 @@ extension.onTextReceive = function(msg)
     if (matches[1]=='help') then
         local output = get_bot_help()
         bot.sendMessage(msg.chat.id,output,"Markdown")
+        return
     end
     
     if (matches[1]=='help@strangerGroupBot') then
         local output = get_bot_help()
         bot.sendMessage(msg.chat.id,output,"Markdown")
+        return
     end
     
     if (matches[1]=='about') then
         local output = get_bot_about()
         bot.sendMessage(msg.chat.id,output)
+        return
     end
     
     if (matches[1]=='about@strangerGroupBot') then
         local output = get_bot_about()
         bot.sendMessage(msg.chat.id,output)
+        return
     end
     
     if matches[1] then
@@ -356,6 +378,10 @@ end
 
 
 extension.onPhotoReceive = function(msg)
+    
+    if is_old_msg(msg.date) then
+        return
+    end
     
     if is_disabled_media(msg.chat.id) then
         return
@@ -373,6 +399,10 @@ end
 
 extension.onVideoReceive = function(msg)
     
+    if is_old_msg(msg.date) then
+        return
+    end
+    
     if is_disabled_media(msg.chat.id) then
         return
     end
@@ -389,6 +419,11 @@ end
 
 extension.onStickerReceive = function(msg)
 	print("Sticker received!")
+	
+	if is_old_msg(msg.date) then
+        return
+    end
+    
 	if control_if_chatting(msg.chat.id) then
 	    local dest = get_com_id(msg.chat.id)
 	    bot.sendSticker(dest,msg.sticker.file_id)
@@ -398,6 +433,10 @@ end
 
 
 extension.onVoiceReceive = function(msg)
+    
+    if is_old_msg(msg.date) then
+        return
+    end
     
     if is_disabled_media(msg.chat.id) then
         return
@@ -414,6 +453,10 @@ end
 
 
 extension.onAudioReceive = function(msg)
+    
+    if is_old_msg(msg.date) then
+        return
+    end
     
     if is_disabled_media(msg.chat.id) then
         return

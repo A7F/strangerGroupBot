@@ -33,7 +33,7 @@ local M = {} -- Main Bot Framework
 local E = {} -- Extension Framework
 local C = {} -- Configure Constructor
 
-owner = 0 --put here owner id
+owner = {} --put here owner id
 
 -- JSON Error handlers
 function JSON:onDecodeError(message, text, location, etc)
@@ -92,7 +92,6 @@ end
 
 C.configure = configure
 
-
 local function makeRequest(method, request_body)
 
   local response = {}
@@ -118,6 +117,8 @@ local function makeRequest(method, request_body)
   }
   return r
 end
+
+-- Helper functions
 
 local function downloadFile(file_id, download_path)
 
@@ -197,6 +198,7 @@ end
 
 M.generateForceReply = generateForceReply
 
+-- Bot API 1.0
 
 local function getUpdates(offset, limit, timeout)
 
@@ -258,7 +260,6 @@ local function sendMessage(chat_id, text, parse_mode, disable_web_page_preview, 
 end
 
 M.sendMessage = sendMessage
-
 
 local function forwardMessage(chat_id, from_chat_id, disable_notification, message_id)
 
@@ -557,6 +558,108 @@ end
 
 M.sendLocation = sendLocation
 
+local function sendChatAction(chat_id, action)
+
+  if not chat_id then return nil, "chat_id not specified" end
+  if not action then return nil, "action not specified" end
+
+  local request_body = {}
+
+  local allowedAction = {
+    ["typing"] = true,
+    ["upload_photo"] = true,
+    ["record_video"] = true,
+    ["upload_video"] = true,
+    ["record_audio"] = true,
+    ["upload_audio"] = true,
+    ["upload_document"] = true,
+    ["find_location"] = true,
+  }
+
+  if (not allowedAction[action]) then action = "typing" end
+
+  request_body.chat_id = chat_id
+  request_body.action = action
+
+  local response = makeRequest("sendChatAction",request_body)
+
+  if (response.success == 1) then
+    return JSON:decode(response.body)
+  else
+    return nil, "Request Error"
+  end
+end
+
+M.sendChatAction = sendChatAction
+
+local function getUserProfilePhotos(user_id, offset, limit)
+
+  if not user_id then return nil, "user_id not specified" end
+
+  local request_body = {}
+
+  request_body.user_id = tonumber(user_id)
+  request_body.offset = offset
+  request_body.limit = limit
+
+  local response = makeRequest("getUserProfilePhotos",request_body)
+
+  if (response.success == 1) then
+    return JSON:decode(response.body)
+  else
+    return nil, "Request Error"
+  end
+end
+
+M.getUserProfilePhotos = getUserProfilePhotos
+
+local function getFile(file_id)
+
+  if not file_id then return nil, "file_id not specified" end
+
+  local request_body = {}
+
+  request_body.file_id = file_id
+
+  local response = makeRequest("getFile",request_body)
+
+  if (response.success == 1) then
+    return JSON:decode(response.body)
+  else
+    return nil, "Request Error"
+  end
+end
+
+M.getFile = getFile
+
+local function answerInlineQuery(inline_query_id, results, cache_time, is_personal, next_offset, switch_pm_text, switch_pm_parameter)
+
+  if not inline_query_id then return nil, "inline_query_id not specified" end
+  if not results then return nil, "results not specified" end
+
+  local request_body = {}
+
+  request_body.inline_query_id = tostring(inline_query_id)
+  request_body.results = JSON:encode(results)
+  request_body.cache_time = tonumber(cache_time)
+  request_body.is_personal = tostring(is_personal)
+  request_body.next_offset = tostring(next_offset)
+  request_body.switch_pm_text = tostring(switch_pm_text)
+  request_body.switch_pm_parameter = tostring(switch_pm_text)
+
+  local response = makeRequest("answerInlineQuery",request_body)
+
+  if (response.success == 1) then
+    return JSON:decode(response.body)
+  else
+    return nil, "Request Error"
+  end
+end
+
+M.answerInlineQuery = answerInlineQuery
+
+-- Bot API 2.0
+
 local function sendVenue(chat_id, latitude, longitude, title, adress, foursquare_id, disable_notification, reply_to_message_id, reply_markup)
   
   if not chat_id then return nil, "chat_id not specified" end
@@ -613,81 +716,6 @@ end
 
 M.sendContact = sendContact
 
-local function sendChatAction(chat_id, action)
-
-  if not chat_id then return nil, "chat_id not specified" end
-  if not action then return nil, "action not specified" end
-
-  local request_body = {}
-
-  local allowedAction = {
-    ["typing"] = true,
-    ["upload_photo"] = true,
-    ["record_video"] = true,
-    ["upload_video"] = true,
-    ["record_audio"] = true,
-    ["upload_audio"] = true,
-    ["upload_document"] = true,
-    ["find_location"] = true,
-  }
-
-  if (not allowedAction[action]) then action = "typing" end
-
-  request_body.chat_id = chat_id
-  request_body.action = action
-
-  local response = makeRequest("sendChatAction",request_body)
-
-  if (response.success == 1) then
-    return JSON:decode(response.body)
-  else
-    return nil, "Request Error"
-  end
-end
-
-M.sendChatAction = sendChatAction
-
-
-local function getUserProfilePhotos(user_id, offset, limit)
-
-  if not user_id then return nil, "user_id not specified" end
-
-  local request_body = {}
-
-  request_body.user_id = tonumber(user_id)
-  request_body.offset = offset
-  request_body.limit = limit
-
-  local response = makeRequest("getUserProfilePhotos",request_body)
-
-  if (response.success == 1) then
-    return JSON:decode(response.body)
-  else
-    return nil, "Request Error"
-  end
-end
-
-M.getUserProfilePhotos = getUserProfilePhotos
-
-local function getFile(file_id)
-
-  if not file_id then return nil, "file_id not specified" end
-
-  local request_body = {}
-
-  request_body.file_id = file_id
-
-  local response = makeRequest("getFile",request_body)
-
-  if (response.success == 1) then
-    return JSON:decode(response.body)
-  else
-    return nil, "Request Error"
-  end
-end
-
-M.getFile = getFile
-
 local function kickChatMember(chat_id, user_id)
 	if not chat_id then return nil, "chat_id not specified" end
 	if not user_id then return nil, "user_id not specified" end
@@ -729,13 +757,14 @@ end
 M.unbanChatMember = unbanChatMember
 
 local function answerCallbackQuery(callback_query_id, text, show_alert)
+
 	if not callback_query_id then return nil, "callback_query_id not specified" end
 
 	local request_body = {}
 
 	request_body.callback_query_id = tostring(callback_query_id)
 	request_body.text = tostring(text)
-	request_body.show_alert = show_alert
+	request_body.show_alert = tostring(show_alert)
 	
 	local response = makeRequest("answerCallbackQuery",request_body)
 
@@ -750,9 +779,9 @@ M.answerCallbackQuery = answerCallbackQuery
 
 local function editMessageText(chat_id, message_id, inline_message_id, text, parse_mode, disable_web_page_preview, reply_markup)
 	
-  if not chat_id then return nil, "chat_id not specified" end
-  if not message_id then return nil, "message_id not specified" end
-  if not inline_message_id then return nil, "inline_message_id not specified" end
+  if not chat_id and not inline_message_id then return nil, "chat_id not specified" end
+  if not message_id and not inline_message_id then return nil, "message_id not specified" end
+  if not inline_message_id and not (chat_id and message_id) then return nil, "inline_message_id not specified" end
   if not text then return nil, "text not specified" end
 
   local request_body = {}
@@ -778,9 +807,9 @@ M.editMessageText = editMessageText
 
 local function editMessageCaption(chat_id, message_id, inline_message_id, caption, reply_markup)
   
-  if not chat_id then return nil, "chat_id not specified" end
-  if not message_id then return nil, "message_id not specified" end
-  if not inline_message_id then return nil, "inline_message_id not specified" end
+  if not chat_id and not inline_message_id then return nil, "chat_id not specified" end
+  if not message_id and not inline_message_id then return nil, "message_id not specified" end
+  if not inline_message_id and not (chat_id and message_id) then return nil, "inline_message_id not specified" end
   if not caption then return nil, "caption not specified" end
 
   local request_body = {}
@@ -804,9 +833,9 @@ M.editMessageCaption = editMessageCaption
 
 local function editMessageReplyMarkup(chat_id, message_id, inline_message_id, reply_markup)
   
-  if not chat_id then return nil, "chat_id not specified" end
-  if not message_id then return nil, "message_id not specified" end
-  if not inline_message_id then return nil, "inline_message_id not specified" end
+  if not chat_id and not inline_message_id then return nil, "chat_id not specified" end
+  if not message_id and not inline_message_id then return nil, "message_id not specified" end
+  if not inline_message_id and not (chat_id and message_id) then return nil, "inline_message_id not specified" end
 
   local request_body = {}
 
@@ -826,20 +855,16 @@ end
 
 M.editMessageReplyMarkup = editMessageReplyMarkup
 
-local function answerInlineQuery(inline_query_id, results, cache_time, is_personal, next_offset)
+-- Bot API 2.1
 
-  if not inline_query_id then return nil, "inline_query_id not specified" end
-  if not results then return nil, "results not specified" end
+local function getChat(chat_id)
+
+  if not chat_id then return nil, "chat_id not specified" end
 
   local request_body = {}
+  request_body.chat_id = chat_id
 
-  request_body.inline_query_id = tostring(inline_query_id)
-  request_body.results = JSON:encode(results)
-  request_body.cache_time = tonumber(cache_time)
-  request_body.is_personal = tostring(is_personal)
-  request_body.next_offset = tostring(next_offset)
-
-  local response = makeRequest("answerInlineQuery",request_body)
+  local response = makeRequest("getChat", request_body)
 
   if (response.success == 1) then
     return JSON:decode(response.body)
@@ -848,7 +873,82 @@ local function answerInlineQuery(inline_query_id, results, cache_time, is_person
   end
 end
 
-M.answerInlineQuery = answerInlineQuery
+M.getChat = getChat
+
+local function leaveChat(chat_id)
+
+  if not chat_id then return nil, "chat_id not specified" end
+
+  local request_body = {}
+  request_body.chat_id = chat_id
+
+  local response = makeRequest("leaveChat", request_body)
+
+  if (response.success == 1) then
+    return JSON:decode(response.body)
+  else
+    return nil, "Request Error"
+  end
+end
+
+M.leaveChat = leaveChat
+
+local function getChatAdministrators(chat_id)
+
+  if not chat_id then return nil, "chat_id not specified" end
+
+  local request_body = {}
+  request_body.chat_id = chat_id
+
+  local response = makeRequest("getChatAdministrators", request_body)
+
+  if (response.success == 1) then
+    return JSON:decode(response.body)
+  else
+    return nil, "Request Error"
+  end
+end
+
+M.getChatAdministrators = getChatAdministrators
+
+local function getChatMembersCount(chat_id)
+
+  if not chat_id then return nil, "chat_id not specified" end
+
+  local request_body = {}
+  request_body.chat_id = chat_id
+
+  local response = makeRequest("getChatMembersCount", request_body)
+
+  if (response.success == 1) then
+    return JSON:decode(response.body)
+  else
+    return nil, "Request Error"
+  end
+end
+
+M.getChatMembersCount = getChatMembersCount
+
+local function getChatMember(chat_id, user_id)
+
+  if not chat_id then return nil, "chat_id not specified" end
+  if not user_id then return nil, "user_id not specified" end
+
+
+  local request_body = {}
+  request_body.chat_id = chat_id
+  request_body.user_id = user_id
+
+  local response = makeRequest("getChatMember", request_body)
+
+  if (response.success == 1) then
+    return JSON:decode(response.body)
+  else
+    return nil, "Request Error"
+  end
+end
+
+M.getChatMember = getChatMember
 
 -- Extension Framework
 
@@ -912,11 +1012,17 @@ E.onMigrateToChatId = onMigrateToChatId
 local function onMigrateFromChatId(message) end
 E.onMigrateFromChatId = onMigrateFromChatId
 
+local function onEditedMessageReceive(message) end
+E.onEditedMessageReceive = onEditedMessageReceive
+
 local function onInlineQueryReceive(inlineQuery) end
 E.onInlineQueryReceive = onInlineQueryReceive
 
 local function onChosenInlineQueryReceive(chosenInlineQuery) end
 E.onChosenInlineQueryReceive = onChosenInlineQueryReceive
+
+local function onCallbackQueryReceive(CallbackQuery) end
+E.onCallbackQueryReceive = onCallbackQueryReceive
 
 local function onUnknownTypeReceive(unknownType)
   print("new unknownType!")
@@ -967,10 +1073,14 @@ local function parseUpdateCallbacks(update)
     else
       E.onUnknownTypeReceive(update)
     end
+  elseif (update.edited_message) then
+    E.onEditedMessageReceive(update.edited_message)
   elseif (update.inline_query) then
     E.onInlineQueryReceive(update.inline_query)
   elseif (update.chosen_inline_result) then
     E.onChosenInlineQueryReceive(update.chosen_inline_result)
+  elseif (update.callback_query) then
+    E.onCallbackQueryReceive(update.callback_query)
   else
     E.onUnknownTypeReceive(update)
   end

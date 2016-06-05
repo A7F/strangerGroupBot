@@ -110,3 +110,16 @@ function match_pattern(pattern,text,lower_case)
   end
   -- nil
 end
+
+function is_old_msg(msg_time)
+  if not msg_time then return false end
+  msg_time=tonumber(msg_time)
+  local sys_time=os.time()
+  local diff = sys_time-msg_time
+  if diff>10 then
+    print("=== Old Message ===")
+    return true
+  else
+    return false
+  end
+end
